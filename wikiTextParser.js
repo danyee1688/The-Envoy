@@ -31,7 +31,15 @@ export function parseWikiText(input, text) {
             if (count <= 0) {
                 textInBrackets = false;
                 endIndex = i - 2;
-                stringTemp += handleParsedText(componentList, text.substring(startIndex, endIndex));
+
+                let parsedText = handleParsedText(componentList, text.substring(startIndex, endIndex));
+                
+                if (parsedText !== 'BREAK') {
+                    stringTemp += parsedText;
+                }
+                else {
+                    // break;
+                }
 
                 count = 0;
             }
@@ -54,7 +62,15 @@ export function parseWikiText(input, text) {
             if (count2 <= 0) {
                 textInCurlyBrackets = false;
                 endIndex2 = i - 2;
-                stringTemp += handleParsedText(componentList, text.substring(startIndex2, endIndex2));
+
+                let parsedText = handleParsedText(componentList, text.substring(startIndex2, endIndex2));
+                
+                if (parsedText !== 'BREAK') {
+                    stringTemp += parsedText;
+                }
+                else {
+                    // break;
+                }
 
                 count2 = 0;
             }
@@ -68,6 +84,8 @@ export function parseWikiText(input, text) {
     console.log("FINAL TEXT: ");
     console.log(stringTemp.trim());
 
+    let wikiURL = "source: https://www.poewiki.net/wiki/" + input.split(" ").join("_");
+
     componentList.splice(0, 0,
         {
             type: MessageComponentTypes.CONTAINER,
@@ -79,10 +97,19 @@ export function parseWikiText(input, text) {
                 },
                 {
                     type: MessageComponentTypes.SEPARATOR,  
+                    spacing: 1.5
                 },
                 {
                     type: MessageComponentTypes.TEXT_DISPLAY,
                     content: `${stringTemp.trim()}`,
+                },
+                {
+                    type: MessageComponentTypes.SEPARATOR,
+                    spacing: 1.5
+                },
+                {
+                    type: MessageComponentTypes.TEXT_DISPLAY,
+                    content: `-# ${wikiURL}`,
                 }
             ]
         }
@@ -92,6 +119,8 @@ export function parseWikiText(input, text) {
 }
 
 function handleParsedText(componentList, text) {
+    console.log(text)
+
     let splitText = text.split('|');
 
     console.log(splitText);
@@ -124,6 +153,13 @@ function handleParsedText(componentList, text) {
             });
         }
 
+        if (item.itemExplicits.length > 0) {
+            components.push({
+                type: MessageComponentTypes.TEXT_DISPLAY,
+                content: `Explicit Modifiers: ${item.itemExplicits.join(", ")}`,
+            });
+        }
+
         if (item.itemTags.length > 0) {
             components.push({
                 type: MessageComponentTypes.TEXT_DISPLAY,
@@ -144,6 +180,9 @@ function handleParsedText(componentList, text) {
     else if (splitText[0].trim() === "MonsterBox") {
         return "";
     }
+    else if (splitText[0] === "Quest\n") {
+        return "";
+    }
     else if (splitText[0].trim() === "quote") {
         return "_" + splitText.slice(1).join('|') + "_";
     }
@@ -152,6 +191,9 @@ function handleParsedText(componentList, text) {
         console.log("**" + splitText.slice(1).join('|') + "**");
 
         return "**" + splitText.slice(1).join('|') + "**";
+    }
+    else if (splitText[0].trim() === "Foulborn") {
+        return "BREAK";
     }
     else if (splitText[0].startsWith("Passive skill box")) {
         return "";
@@ -177,6 +219,7 @@ function parseItem(splitText) {
     let itemRarity = "";
     let itemDescription = "";
     let itemTags = [];
+    let itemExplicits = [];
 
     splitText.forEach((string) => {
         if (string.startsWith('class_id')) {
@@ -207,6 +250,13 @@ function parseItem(splitText) {
 
             itemTags = itemTags.concat(value);
         }
+        else if (string.startsWith('explicit')) {
+            let index = string.indexOf('=');
+            let value = string.slice(index + 1).trim();
+            console.log('explicit modifiers: ', value);
+
+            itemExplicits.push(value);
+        }
     });
 
     return {
@@ -214,5 +264,6 @@ function parseItem(splitText) {
         itemRarity: itemRarity,
         itemDescription: itemDescription,
         itemTags: itemTags,
+        itemExplicits: itemExplicits,
     }
 }
